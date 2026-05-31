@@ -7,3 +7,4 @@ tex/*.log
 tex/*.fdb_latexmk
 tex/*.blg
 tex/*.bbl
+.direnv

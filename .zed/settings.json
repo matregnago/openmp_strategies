@@ -1,0 +1,18 @@
+{
+  "languages": {
+    "R": {
+      "language_servers": ["r_language_server"],
+    },
+    "C": {
+      "language_servers": ["clangd"],
+    },
+  },
+  "lsp": {
+    "r_language_server": {
+      "binary": {
+        "path": "direnv",
+        "arguments": ["exec", ".", "clangd"],
+      },
+    },
+  },
+}

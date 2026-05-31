@@ -13,6 +13,7 @@
       rEnv = pkgs.rWrapper.override {
         packages = with pkgs.rPackages; [
           tidyverse
+          languageserver
         ];
       };
     in
@@ -24,6 +25,8 @@
             pkgs.texliveFull
             pkgs.just
             pkgs.gcc
+            pkgs.clang-tools
+            pkgs.llvmPackages.openmp
           ];
         };
         pcad = pkgs.mkShell {
