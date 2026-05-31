@@ -1,6 +1,6 @@
 stencil2d
 mandelbrot
-
+Rplots.pdf
 tex/*.aux
 tex/*.fls
 tex/*.log

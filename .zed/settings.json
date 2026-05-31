@@ -11,6 +11,19 @@
     "r_language_server": {
       "binary": {
         "path": "direnv",
+        "arguments": [
+          "exec",
+          ".",
+          "R",
+          "--slave",
+          "-e",
+          "languageserver::run()",
+        ],
+      },
+    },
+    "clangd": {
+      "binary": {
+        "path": "direnv",
         "arguments": ["exec", ".", "clangd"],
       },
     },
