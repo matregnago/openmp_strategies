@@ -1,0 +1,9 @@
+stencil2d
+mandelbrot
+
+tex/*.aux
+tex/*.fls
+tex/*.log
+tex/*.fdb_latexmk
+tex/*.blg
+tex/*.bbl
