@@ -44,4 +44,27 @@ ggplot(summary_df, aes(x = omp_num_threads, y = eff, color = algorithm)) +
 ggsave("plots/eff.pdf", width = 6, height = 4)
 
 
-df <- read_csv()
+df <- read_csv("results/phase2.csv")
+
+
+summary_df <- df |>
+  group_by(algorithm, omp_schedule, chunk) |>
+  summarise(
+    mean_time = mean(time),
+    sd = sd(time)
+  )
+ggplot(summary_df, aes(fill = omp_schedule, y = mean_time, x = factor(chunk))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_errorbar(aes(ymin = mean_time - sd, ymax = mean_time + sd),
+    width = .5,
+    position = position_dodge(.9)
+  ) +
+  facet_wrap(~algorithm) +
+  labs(
+    title = "Escalonadores",
+    fill = "OMP Schedule"
+  ) +
+  theme_bw()
+
+
+ggsave("plots/schedule.pdf", width = 6, height = 4)
