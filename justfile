@@ -1,12 +1,12 @@
 build:
-    g++ -fopenmp mandelbrot.cpp -o mandelbrot
-    g++ -fopenmp stencil2d.cpp -o stencil2d
+    g++ -O3 -fopenmp mandelbrot.cpp -o mandelbrot
+    g++ -O3 -fopenmp stencil2d.cpp -o stencil2d
 
 mandelbrot:
-    g++ -fopenmp mandelbrot.cpp -o mandelbrot
+    g++ -O3 -fopenmp mandelbrot.cpp -o mandelbrot
 
 stencil:
-    g++ -fopenmp stencil2d.cpp -o stencil2d
+    g++ -O3 -fopenmp stencil2d.cpp -o stencil2d
 
 latex-build:
     cd tex && latexmk -pdf relatorio.tex

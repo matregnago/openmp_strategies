@@ -27,6 +27,7 @@
             pkgs.gcc
             pkgs.clang-tools
             pkgs.llvmPackages.openmp
+            pkgs.perf
           ];
         };
         pcad = pkgs.mkShell {

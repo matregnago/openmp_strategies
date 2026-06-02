@@ -11,6 +11,9 @@ PHASE2_CSV="$RESULTS_DIR/phase2.csv"
 PHASE3_CSV="$RESULTS_DIR/phase3.csv"
 PHASE4_CSV="$RESULTS_DIR/phase4.csv"
 
+MANDELBROT_PERF="$RESULTS_DIR/mandelbrot.txt"
+STENCIL2D_NO_FT_PERF="$RESULTS_DIR/stencil2d_no_ft.txt"
+STENCIL2D_FT_PERF="$RESULTS_DIR/stencil2d_ft.txt"
 
 echo "algorithm,omp_num_threads,replication,time" > "$PHASE1_CSV"
 echo "algorithm,omp_schedule,chunk,replication,time" > "$PHASE2_CSV"
@@ -84,5 +87,9 @@ for ft in 1 0; do
         done
     done
 done
+
+OMP_NUM_THREADS=20 perf stat -o $MANDELBROT_PERF -e L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses,cache-misses,cache-references,node-loads,node-load-misses ./mandelbrot
+OMP_NUM_THREADS=20 perf stat -o $STENCIL2D_NO_FT_PERF  -e L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses,cache-misses,cache-references,node-loads,node-load-misses ./stencil2d
+FIRST_TOUCH=1 OMP_NUM_THREADS=20 perf stat -o $STENCIL2D_FT_PERF -e L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses,cache-misses,cache-references,node-loads,node-load-misses ./stencil2d
 
 cp -r "$RESULTS_DIR" "$SLURM_SUBMIT_DIR/"
