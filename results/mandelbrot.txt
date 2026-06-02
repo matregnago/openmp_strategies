@@ -1,0 +1,20 @@
+# started on Mon Jun  1 22:48:53 2026
+
+
+ Performance counter stats for './mandelbrot':
+
+    22,887,793,806      L1-dcache-loads                                                      (47.90%)
+         6,357,768      L1-dcache-load-misses            #    0.03% of all L1-dcache accesses  (26.32%)
+           701,395      LLC-loads                                                            (25.06%)
+           156,615      LLC-load-misses                  #   22.33% of all LL-cache accesses  (37.40%)
+           325,221      cache-misses                     #   40.806 % of all cache refs      (49.76%)
+           796,990      cache-references                                                     (49.46%)
+            21,555      node-loads                                                           (50.07%)
+            49,735      node-load-misses                                                     (50.25%)
+
+       1.291361381 seconds time elapsed
+
+      25.263616000 seconds user
+       0.028070000 seconds sys
+
+

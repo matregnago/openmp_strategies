@@ -1,0 +1,20 @@
+# started on Mon Jun  1 22:48:54 2026
+
+
+ Performance counter stats for './stencil2d':
+
+    27,049,824,958      L1-dcache-loads                                                      (49.64%)
+     3,473,652,286      L1-dcache-load-misses            #   12.84% of all L1-dcache accesses  (24.98%)
+     1,749,293,112      LLC-loads                                                            (25.19%)
+        59,787,030      LLC-load-misses                  #    3.42% of all LL-cache accesses  (37.74%)
+       154,128,390      cache-misses                     #    6.429 % of all cache refs      (50.27%)
+     2,397,302,853      cache-references                                                     (50.17%)
+        20,412,640      node-loads                                                           (50.03%)
+        39,706,178      node-load-misses                                                     (49.89%)
+
+       2.943820769 seconds time elapsed
+
+      57.840050000 seconds user
+       0.747845000 seconds sys
+
+
