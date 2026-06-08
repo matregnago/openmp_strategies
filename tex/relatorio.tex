@@ -17,9 +17,17 @@
 
 \section{Introdução}
 
+Quando um algoritmo é paralelizado com OpenMP, não basta apenas distribuir o trabalho entre várias
+\emph{threads}. A forma como as \emph{threads} são posicionadas nos núcleos do processador e a forma como os
+dados são alocados na memória também influenciam bastante o desempenho final. Em máquinas modernas, que
+possuem vários processadores e mais de um nó de memória, como a arquitetura NUMA, diferentes configurações
+influenciam diretamente o tempo de execução de um programa.
 
-% contexto impacto de diferentes estratégias de alocação de threads e dados no desempenho de aplicações executadas com OpenMP
-% objetivo compute-bound vs memory-bound
+O objetivo deste trabalho é investigar como diferentes estratégias de alocação de \emph{threads} e de
+dados afetam o desempenho dos programas em OpenMP. Para isso, foi utilizado o cálculo do conjunto de Mandelbrot,
+uma aplicação \emph{compute-bound}, e o Stencil 2D de Jacobi, que é \emph{memory-bound}.
+Os experimentos foram organizados em quatro fases, variando o número de \emph{threads}, o escalonamento, a
+afinidade e a técnica de \emph{first-touch}, a fim de observar o impacto de cada configuração em cada aplicação.
 
 \section{Aplicações escolhidas}
 
@@ -44,6 +52,7 @@ o ponto $c$ percente ao conjunto de Mandelbrot. Caso contrário, o ponto não fa
 		z_{n+1} & = z_n^2 + c
 	\end{aligned}
 \end{equation}
+
 
 A implementação calcula uma imagem de tamanho $4096 \times 4096$ pixels sobre a região $[-2, 2] \times [-2, 2]$ do plano complexo, com limite de $1000$ iterações por pixel. Caso o ponto atinja esse limite,
 considera-se que ele não pertence ao conjunto. O Algoritmo~\ref{alg:mandel} mostra a implementação.
@@ -184,48 +193,149 @@ em cada uma das fases.
 	\end{tabular}
 \end{table}
 
-
+A primeira fase avaliou a escalabilidade e a eficiência paralela de ambos os algoritmos sob o aumento do número de \emph{threads}.
+A segunda fase teve o foco em como o tempo de execução é afetado pelas diferentes políticas de escalonamento (\texttt{OMP\_SCHEDULE}).
+A terceira fase se concentrou nas configurações de afinidade, visando a otimização da localidade dos dados.
+E por fim, a quarta e última fase foi dedicada exclusivamente ao Stencil, \emph{memory-bound}, para analisar o impacto da técnica de \emph{first-touch}.
+Essa etapa teve como objetivo verificar se a inicialização paralela diminui os custos de acesso à memória NUMA, garantindo que os dados sejam alocados fisicamente
+mais próximos aos núcleos que os processam.
 \section{Resultados obtidos}
 
+A partir dos experimentos descritos na seção anterior, a seguir, serão apresentados os resultados obtidos em cada uma das fases.
 
-% 5. Resultados obtidos e analises
-% - 5.1 Escalabilidade/eficiência
-% - 5.2 Escalonadores
-% - 5.3 Afinidade
-% - 5.4 First-touch
-% - 5.5 False sharing
+\subsection{Escalabilidade}
 
-% \begin{figure}[h]
-% 	\centering
-% 	\includegraphics[width=1\textwidth]{../plots/speedup_eff.pdf}
-% 	\caption{A nice plot.}
-% 	\label{fig:phase1}
-% \end{figure}
+A Figura~\ref{fig:phase1} apresenta o \emph{speedup} e a eficiência paralela de ambos os algoritmos
+em função do número de \emph{threads}, usando como referência o tempo da execução com uma thread.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=1\textwidth]{../plots/speedup_eff.pdf}
+	\caption{\emph{Speedup} e eficiência paralela em função do número de \emph{threads}.}
+	\label{fig:phase1}
+\end{figure}
+
+O conjunto de Mandelbrot em até 4 \emph{threads}, a sua eficiência permaneceu acima de 98\%. Com 20 threads, ocupando todos os cores físicos da máquina,
+o algoritmo atingiu um \emph{speedup} de 16.9 com 84.7\% de eficiência.
+Esse resultado surge pela natureza compute-bound do algoritmo, onde cada pixel é calculado de forma independente
+ou seja, a carga de trabalho depende muito da capacidade de processamento da CPU. A partir de 32 \emph{threads}, quando o número de \emph{threads} ultrapassa o número de cores físicos, o \emph{speedup}
+se estabilizou próximo de 18.8, e a eficiência caiu drasticamente,
+refletindo a disputa de recursos pelas \emph{threads} que compartilham o mesmo core físico.
+
+No Stencil 2D a escalabilidade se manteve próxima do ideal até 4 \emph{threads}, e a partir daí o
+\emph{speedup} saturou em torno de 5.7 entre 16 e 20 \emph{threads}.
+Como o algoritmo realiza pouco trabalho aritmético por elemento acessado, o desempenho passa a ser
+limitado pela velocidade da memória e não pela quantidade de cores disponíveis.
+
+\subsection{Escalonadores}
+
+Nesta fase, o número de \emph{threads} foi fixado em 20 e variou-se a política de escalonamento e o tamanho do \emph{chunk}.
+A Figura~\ref{fig:phase2} apresenta a média do tempo de execução para cada combinação.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=1\textwidth]{../plots/schedule.pdf}
+	\caption{Tempo médio de execução em função da política de escalonamento e do tamanho do \emph{chunk}.}
+	\label{fig:phase2}
+\end{figure}
+
+No Mandelbrot, a política de escalonamento que apresentou o melhor resultado foi a \texttt{dynamic} com 2 \emph{chunks}, atingindo 1.23s.
+Esse resultado ficou bem próximo das políticas \texttt{static} e \texttt{auto}.
+Isso ocorre porque a carga de trabalho é desbalanceada, onde os pixels que pertencem ao conjunto consomem o número máximo de iterações e ficam
+alocados na região do centro da imagem. A política \texttt{guided}, que distribui \emph{chunks} grandes no
+início da execução foi a pior de todas, com tempo de execução em torno de 2.57s, porque esses blocos iniciais grandes geram desbalanceamento entre as \emph{threads}.
+Além disso, \emph{chunks} muito grandes, tamanho 64 por exemplo, afetam o desempenho de todas as políticas, pelo mesmo motivo.
+
+Porém, o Stencil 2D apresentou um comportamento inverso. Por ter uma carga praticamente homogênea, ele se beneficiou de
+\emph{chunks} grandes, que preservam a localidade dos acessos à memória e reduzem o número de blocos
+distribuídos. A política \texttt{guided} se apresentou como a melhor independentemente do tamanho do \emph{chunk},
+enquanto \texttt{static}, \texttt{dynamic} e \texttt{auto} melhoram à medida que o tamanho do \emph{chunk} aumenta.
+Com \emph{chunk} baixo, as linhas da cache são distribuídas de forma intercalada entre as \emph{threads},
+o que prejudica a localidade espacial e acaba afetando negativamente o Stencil 2D, que é uma aplicação \emph{memory-bound}.
 
 
-% \begin{figure}[h]
-% 	\centering
-% 	\includegraphics[width=1\textwidth]{../plots/schedule.pdf}
-% 	\caption{A nice plot.}
-% 	\label{fig:phase2}
-% \end{figure}
+\subsection{Afinidade}
 
-% \begin{figure}[h]
-% 	\centering
-% 	\includegraphics[width=.75\textwidth]{../plots/bind_and_places.pdf}
-% 	\caption{A nice plot.}
-% 	\label{fig:phase3}
-% \end{figure}
+A terceira fase, também foi executada com 20 \emph{threads} fixas, visa testar e observar o efeito das políticas de afinidade combinando os
+valores de \texttt{OMP\_PROC\_BIND} e \texttt{OMP\_PLACES}. A Figura~\ref{fig:phase3} mostra o tempo de execução médio de
+cada dupla.
 
-% \begin{figure}[h]
-% 	\centering
-% 	\includegraphics[width=.75\textwidth]{../plots/first_touch.pdf}
-% 	\caption{A nice plot.}
-% 	\label{fig:phase4}
-% \end{figure}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=.9\textwidth]{../plots/bind_and_places.pdf}
+	\caption{Tempo médio de execução para cada combinação de \texttt{OMP\_PROC\_BIND} e \texttt{OMP\_PLACES},
+		com 20 \emph{threads}. Tons mais escuros indicam tempos menores.}
+	\label{fig:phase3}
+\end{figure}
+
+
+O resultado mais interessante é o impacto da política \texttt{master}, que fixa todas
+as \emph{threads} no mesmo \emph{place} da \emph{thread} mestra, fazendo com que todas
+disputem os recursos desse único \emph{place}. A localidade influenciou consideravelmente
+o tempo de execução nessa política.
+Com a localidade threads, todas as \emph{threads} competem pela mesma
+\emph{thread} de \emph{hardware}, resultando no pior tempo em ambos os algoritmos, com
+valores parecidos com a execução sequencial. Com \texttt{cores}, o desempenho também é
+fortemente prejudicado, com a diferença de que as \emph{threads} disputam o mesmo core
+físico. Já com \texttt{sockets}, todas as \emph{threads} ficam presas a um único
+processador. Nessa localidade, a execução é mais lenta que nas políticas que usam os dois processadores,
+mas ainda assim aproveita todos os núcleos de um \emph{socket}, o que explica o ganho
+expressivo em relação às localidades \texttt{cores} e \texttt{threads}.
+
+É possível observar outro resultado interessante ao combinar a localidade de threads com as políticas
+que empacotam as \emph{threads}, \texttt{close} e \texttt{true}. Como cada \emph{place}
+passa a ser um único contexto lógico, o empacotamento aloca as 20 \emph{threads} nos
+primeiros 20 \emph{places} disponíveis, que correspondem as 20 threads lógicas dos
+10 cores físicos do primeiro \emph{socket}. Assim, cada núcleo físico passa a
+hospedar duas \emph{threads}, enquanto o segundo \emph{socket} permanece ocioso, o que ocasiona em
+um tempo de execução dobrado. Em contrapartida, o mesmo \texttt{OMP\_PLACES=threads} junto com a política \texttt{spread}
+não apresenta esse problema, porque o spread distribui as \emph{threads} pelos dois
+\emph{sockets} antes de recorrer as threads logicas.
+As demais combinações apresentam desempenho muito parecido, indicando que, uma vez garantida a ocupação dos dois \emph{sockets} e de
+um núcleo físico por \emph{thread}, a política específica de afinidade tem pouca influência sobre o tempo de execução dos algoritmos.
+
+
+\subsection{First-touch}
+
+A última fase foi dedicada ao Stencil, \emph{memory-bound}, e comparou a inicialização
+sequencial das matrizes, em que a \emph{thread} mestra toca todas as páginas, com a
+inicialização paralela, em que cada \emph{thread} toca as páginas que irá processar.
+Todas as execuções utilizaram \texttt{OMP\_PROC\_BIND=spread} e \texttt{OMP\_PLACES=cores}, variando o número
+de \emph{threads}. A Figura~\ref{fig:phase4} apresenta os tempos médios obtidos.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=.8\textwidth]{../plots/first_touch.pdf}
+	\caption{Tempo médio de execução do Stencil 2D com inicialização sequencial (\texttt{first\_touch=0}) e
+		paralela (\texttt{first\_touch=1}), em função do número de \emph{threads}. As barras de erro indicam o
+		desvio padrão.}
+	\label{fig:phase4}
+\end{figure}
+
+A inicialização paralela é consistentemente mais rápida do que a sequencial, com ganhos entre 13\% e 19\% em
+todas as contagens de \emph{threads}. O melhor caso ocorre com 20 \emph{threads}, em que o tempo cai de
+3.45s para 2.91s. Esse resultado confirma o efeito da política de
+\emph{first-touch} em arquiteturas NUMA, onde ao tocar cada página pela primeira vez a partir da \emph{thread} que
+a utilizará, as páginas são alocadas fisicamente no nó NUMA do processador correspondente, evitando os acessos
+remotos que ocorrem quando toda a matriz é inicializada pela \emph{thread} mestra e fica concentrada em um
+único nó.
 
 \section{Conclusões}
-% 7. Conclusões — melhores configs por app; lições obtidas na analise dos resultados.
+Os experimentos mostraram que não existe uma única configuração ideal para todos os casos. A melhor escolha
+depende do tipo de aplicação. A diferença entre um programa \emph{compute-bound} e um
+\emph{memory-bound} ficou clara em todas as fases.
+
+O Mandelbrot, por ser \emph{compute-bound}, aproveitou bem o aumento do número de \emph{threads} e escalou
+quase de forma ideal enquanto havia núcleos físicos disponíveis, chegando a um \emph{speedup} próximo de 17
+com 20 \emph{threads}. Por ter uma carga de trabalho desbalanceada, ele se beneficiou de um escalonamento
+\texttt{dynamic} com \emph{chunks} pequenos, que distribui melhor as linhas mais custosas.
+
+O Stencil 2D, por ser \emph{memory-bound}, teve um comportamento bem diferente. Ele parou de escalar cedo,
+por volta de 4 a 8 \emph{threads}, pois ficou limitado pela largura de banda da memória. No escalonamento,
+preferiu \emph{chunks} grandes, que preservam a localidade dos dados,
+sendo a política \texttt{guided} a mais eficiente. Alem disso, usar a técnica de \emph{first-touch},
+inicializando os dados em paralelo, reduziu o tempo de execução, ao manter os dados próximos dos núcleos
+que os utilizam na arquitetura NUMA.
 
 \bibliographystyle{plain}
 \bibliography{refs}
