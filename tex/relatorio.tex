@@ -14,16 +14,15 @@
 \begin{document}
 \maketitle
 
-
 \section{Introdução}
 
-Quando um algoritmo é paralelizado com OpenMP, não basta apenas distribuir o trabalho entre várias \emph{threads}. A forma como as \emph{threads} são posicionadas nos cores do processador e a forma como os dados são alocados na memória também influenciam bastante o desempenho final. Em máquinas modernas, que possuem vários processadores e mais de um nó de memória, como a arquitetura NUMA, diferentes configurações influenciam diretamente o tempo de execução de um programa.
+Quando um algoritmo é paralelizado com OpenMP, a forma como as \emph{threads} são posicionadas nos cores do processador e a forma como os dados são alocados na memória também influenciam bastante o desempenho final. Isso acontece principalmente em máquinas modernas, que possuem vários processadores e mais de um nó de memória, como a arquitetura NUMA, onde diferentes configurações influenciam diretamente o tempo de execução de um programa.
 
-O objetivo deste trabalho é investigar como diferentes estratégias de alocação de \emph{threads} e de dados afetam o desempenho dos programas em OpenMP. Para isso, foi utilizado o cálculo do conjunto de Mandelbrot, uma aplicação \emph{compute-bound}, e o Stencil 2D de Jacobi, que é \emph{memory-bound}. Os experimentos foram organizados em quatro fases, variando o número de \emph{threads}, o escalonamento, a afinidade e a técnica de \emph{first-touch}, a fim de observar o impacto de cada configuração em cada aplicação.
+O objetivo desee trabalho é experimentar e analisar como diferentes estratégias de alocação de \emph{threads} e de dados afetam o desempenho dos programas em OpenMP. Para isso, foi utilizado o cálculo do conjunto de Mandelbrot, uma aplicação \emph{compute-bound}, e o Stencil 2D, que é \emph{memory-bound}. Os experimentos foram organizados em quatro fases, variando o número de \emph{threads}, o escalonamento, a afinidade e a técnica de \emph{first-touch}, para observar o impacto de cada configuração em cada aplicação.
 
 \section{Aplicações escolhidas}
 
-Este trabalho utilizou o cálculo do conjunto de Mandelbrot para a experimentação em uma aplicação \emph{compute-bound}, e o algoritmo Stencil 2D de Jacobi para avaliar as diferentes configurações em um problema \emph{memory-bound}. As aplicações foram desenvolvidas com auxílio da ferramenta de inteligência artificial Claude Opus 4.7 da empresa Anthropic. Além disso, todo o contexto do trabalho está disponível em um repositório no GitHub\footnote{As implementações, os resultados e os gráficos estão disponíveis em \url{https://github.com/matregnago/openmp_strategies}.}.
+Este trabalho utilizou o cálculo do conjunto de Mandelbrot para a experimentação em uma aplicação \emph{compute-bound}, e o algoritmo Stencil 2D de Jacobi para avaliar as diferentes configurações em um problema \emph{memory-bound}. As aplicações foram desenvolvidas com auxílio da ferramenta de inteligência artificial Claude Opus 4.7. Além disso, todo o contexto do trabalho está disponível em um repositório no GitHub\footnote{Repositório disponível em \url{https://github.com/matregnago/openmp_strategies}.}.
 
 \subsection{Conjunto de Mandelbrot}
 
@@ -86,7 +85,7 @@ O stencil define um padrão computacional onde os elementos de uma grade multidi
 	\end{algorithmic}
 \end{algorithm}
 
-A paralelização desse algoritmo também usa a diretiva \texttt{\#pragma omp parallel for} sobre o laço que itera sobre as linhas. Como a escrita de \texttt{new\_grid} lê apenas \texttt{grid}, não há dependências entre \emph{threads} dentro de uma iteração.
+A paralelização desse algoritmo também usa a diretiva \texttt{\#pragma omp parallel for} no o laço que itera sobre as linhas. Como a escrita de \texttt{new\_grid} lê apenas \texttt{grid}, não há dependências entre \emph{threads} dentro de uma iteração.
 
 Além disso, a implementação possui dois modos possíveis para a inicialização das matrizes: o modo sequencial, em que a \emph{thread} mestra toca todas as páginas, e o modo paralelo, com o escalonador \texttt{static}, em que cada \emph{thread} toca as páginas que irá processar.
 
@@ -94,7 +93,7 @@ Além disso, a implementação possui dois modos possíveis para a inicializaç�
 \section{Metodologia experimental}
 Todos os experimentos foram executados na partição hype do PCAD\footnote{\url{https://pcad.inf.ufrgs.br}}, no nó \texttt{hype1}. Essa máquina possui uma placa-mãe HP ProLiant DL380 Gen9 com dois processadores Intel Xeon E5-2650v3 2,3GHz, totalizando 20 cores físicos, e 128GB de memória DDR4. A máquina expõe dois nós NUMA, um por processador.
 
-As execuções foram submetidas por um job slurm. Além disso, todo o ambiente é fornecido de forma reprodutível por um flake Nix, que fixa as versões de todos os pacotes. Os dois programas foram compilados com GCC usando a flag -O3 de otimização. O tempo de execução é medido pela função \texttt{omp\_get\_wtime} e cada configuração foi repetida 10 vezes.
+As execuções foram submetidas por um job slurm. Além disso, todo os pacotes usados nos experimentos e no desenvolvimento do trabalho estão disponíveis de forma reprodutível por um flake Nix, que fixa as versões de todos os pacotes. Os dois programas foram compilados com GCC usando a flag -O3 de otimização. O tempo de execução é medido pela função \texttt{omp\_get\_wtime} e cada configuração foi repetida 10 vezes.
 
 Os experimentos foram divididos em quatro fases. A Tabela~\ref{tab:fases} mostra os parâmetros utilizados em cada uma das fases.
 
@@ -153,10 +152,10 @@ Os experimentos foram divididos em quatro fases. A Tabela~\ref{tab:fases} mostra
 	\end{tabular}
 \end{table}
 
-A primeira fase avaliou a escalabilidade e a eficiência paralela de ambos os algoritmos sob o aumento do número de \emph{threads}. A segunda fase teve o foco em como o tempo de execução é afetado pelas diferentes políticas de escalonamento. A terceira fase se concentrou nas configurações de afinidade, visando a otimização da localidade dos dados. E por fim, a quarta e última fase foi dedicada exclusivamente ao Stencil, \emph{memory-bound}, para analisar o impacto da técnica de \emph{first-touch}. Essa etapa teve como objetivo verificar se a inicialização paralela diminui os custos de acesso à memória NUMA, garantindo que os dados sejam alocados fisicamente mais próximos aos cores que os processam.
+A primeira fase avaliou a escalabilidade e a eficiência paralela de ambos os algoritmos conforme o aumento do número de \emph{threads}. A segunda fase teve o foco em como o tempo de execução é afetado pelas diferentes políticas de escalonamento. A terceira fase se concentrou nas configurações de afinidade, visando a otimização da localidade dos dados. E por fim, a quarta fase foi dedicada exclusivamente ao Stencil, \emph{memory-bound}, para analisar o impacto da técnica de \emph{first-touch}, com o objetivo verificar se a inicialização paralela diminui os custos de acesso à memória NUMA, garantindo que os dados sejam alocados fisicamente mais próximos aos cores que os processam.
 \section{Resultados obtidos}
 
-A partir dos experimentos descritos na seção anterior, a seguir, serão apresentados os resultados obtidos em cada uma das fases.
+A partir dos experimentos descritos na seção anterior, agora serão apresentados os resultados obtidos em cada uma das fases.
 
 \subsection{Escalabilidade}
 
@@ -165,13 +164,13 @@ A Figura~\ref{fig:phase1} apresenta o \emph{speedup} e a eficiência paralela de
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=1\textwidth]{../plots/speedup_eff.pdf}
-	\caption{\emph{Speedup} e eficiência paralela em função do número de \emph{threads}.}
+	\caption{\emph{Speedup} e eficiência paralela.}
 	\label{fig:phase1}
 \end{figure}
 
-O conjunto de Mandelbrot manteve a eficiência acima de 98\% em até 4 \emph{threads}. Com 20 \emph{threads}, ocupando todos os cores físicos da máquina, o algoritmo atingiu um \emph{speedup} de 16.9 com 84.7\% de eficiência. Esse resultado surge pela natureza \emph{compute-bound} do algoritmo, onde cada pixel é calculado de forma independente ou seja, a carga de trabalho depende muito da capacidade de processamento da CPU. A partir de 32 \emph{threads}, quando o número de \emph{threads} ultrapassa o número de cores físicos, o \emph{speedup} se estabilizou próximo de 18.8, e a eficiência caiu drasticamente, refletindo a disputa de recursos pelas \emph{threads} que compartilham o mesmo core físico.
+O conjunto de Mandelbrot manteve a eficiência acima de 98\% em até 4 \emph{threads}. Com 20 \emph{threads}, ocupando todos os cores físicos da máquina, o algoritmo atingiu um \emph{speedup} de 16.9 com 84.7\% de eficiência. Isso acontece por causa da característica \emph{compute-bound} do algoritmo, onde cada pixel é calculado de forma independente ou seja, a carga de trabalho depende muito da capacidade de processamento da CPU. A partir de 32 \emph{threads}, quando o número de \emph{threads} ultrapassa o número de cores físicos, o \emph{speedup} se estabilizou próximo de 18.8, e a eficiência caiu drasticamente, por conta da disputa de recursos pelas \emph{threads} que compartilham o mesmo core físico.
 
-No Stencil 2D a escalabilidade se manteve próxima do ideal até 4 \emph{threads}, e a partir daí o \emph{speedup} saturou em torno de 5.7 entre 16 e 20 \emph{threads}. Como o algoritmo realiza pouco trabalho aritmético por elemento acessado, o desempenho passa a ser limitado pela velocidade da memória e não pela quantidade de cores disponíveis.
+No Stencil 2D a escalabilidade se manteve próxima do ideal até 4 \emph{threads}, e a partir daí o \emph{speedup} saturou em torno de 5.7 entre 16 e 20 \emph{threads}, porque como o algoritmo realiza pouco trabalho aritmético por elemento acessado, o desempenho passa a ser limitado pela velocidade da memória e não pela quantidade de cores disponíveis.
 
 \subsection{Escalonadores}
 
@@ -180,7 +179,7 @@ Nesta fase, o número de \emph{threads} foi fixado em 20 e variou-se a política
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=1\textwidth]{../plots/schedule.pdf}
-	\caption{Tempo médio de execução em função da política de escalonamento e do tamanho do \emph{chunk}.}
+	\caption{Tempo execução em função da política de escalonamento e do tamanho do \emph{chunk}.}
 	\label{fig:phase2}
 \end{figure}
 
@@ -196,8 +195,7 @@ A terceira fase, também foi executada com 20 \emph{threads} fixas, visa testar 
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=.9\textwidth]{../plots/bind_and_places.pdf}
-	\caption{Tempo médio de execução para cada combinação de \texttt{OMP\_PROC\_BIND} e \texttt{OMP\_PLACES},
-		com 20 \emph{threads}. Tons mais escuros indicam tempos menores.}
+	\caption{Tempo médio de execução para cada combinação de \texttt{OMP\_PROC\_BIND} e \texttt{OMP\_PLACES}}
 	\label{fig:phase3}
 \end{figure}
 
@@ -214,20 +212,18 @@ A última fase foi dedicada ao Stencil, \emph{memory-bound}, e comparou a inicia
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=.8\textwidth]{../plots/first_touch.pdf}
-	\caption{Tempo médio de execução do Stencil 2D com inicialização sequencial (\texttt{first\_touch=0}) e
-		paralela (\texttt{first\_touch=1}), em função do número de \emph{threads}. As barras de erro indicam o
-		desvio padrão.}
+	\caption{Tempo execução do Stencil 2D com inicialização sequencial e paralela.}
 	\label{fig:phase4}
 \end{figure}
 
-A inicialização paralela é consistentemente mais rápida do que a sequencial, com ganhos entre 13\% e 19\% em todas as contagens de \emph{threads}. O melhor caso ocorre com 20 \emph{threads}, em que o tempo cai de 3.45s para 2.91s. Esse resultado confirma o efeito da política de \emph{first-touch} em arquiteturas NUMA, onde ao tocar cada página pela primeira vez a partir da \emph{thread} que a utilizará, as páginas são alocadas fisicamente no nó NUMA do processador correspondente, evitando os acessos remotos que ocorrem quando toda a matriz é inicializada pela \emph{thread} mestra e fica concentrada em um único nó.
+A inicialização paralela é consistentemente mais rápida do que a sequencial, com ganhos entre 13\% e 19\% em todas as contagens de \emph{threads}, porque ao tocar cada página pela primeira vez a partir da \emph{thread} que a utilizará, as páginas são alocadas fisicamente no nó NUMA do processador correspondente, evitando os acessos remotos que ocorrem quando toda a matriz é inicializada pela \emph{thread} mestra e fica concentrada em um único nó.
 
 \section{Conclusões}
-Os experimentos mostraram que não existe uma única configuração ideal para todos os casos. A melhor escolha depende do tipo de aplicação. A diferença entre um programa \emph{compute-bound} e um \emph{memory-bound} ficou clara em todas as fases.
+Os experimentos mostraram que não existe uma única configuração ideal para todos os casos, porque isso depende do tipo de aplicação.
 
 O Mandelbrot, por ser \emph{compute-bound}, aproveitou bem o aumento do número de \emph{threads} e escalou quase de forma ideal enquanto havia cores físicos disponíveis, chegando a um \emph{speedup} próximo de 17 com 20 \emph{threads}. Por ter uma carga de trabalho desbalanceada, ele se beneficiou de um escalonamento \texttt{dynamic} com \emph{chunks} pequenos, que distribui melhor as linhas mais custosas.
 
-O Stencil 2D, por ser \emph{memory-bound}, teve um comportamento bem diferente. Ele parou de escalar cedo, por volta de 4 a 8 \emph{threads}, pois ficou limitado pela largura de banda da memória. No escalonamento, preferiu \emph{chunks} grandes, que preservam a localidade dos dados, sendo a política \texttt{guided} a mais eficiente. Além disso, usar a técnica de \emph{first-touch}, inicializando os dados em paralelo, reduziu o tempo de execução, ao manter os dados próximos dos cores que os utilizam na arquitetura NUMA.
+O Stencil 2D, por ser \emph{memory-bound}, teve um comportamento bem diferente, onde parou de escalar cedo, por volta de 4 a 8 \emph{threads}, pois ficou limitado pela largura de banda da memória. No escalonamento, preferiu \emph{chunks} grandes, que preservam a localidade dos dados, sendo a política \texttt{guided} a mais eficiente. Além disso, usar a técnica de \emph{first-touch}, inicializando os dados em paralelo, reduziu o tempo de execução, ao manter os dados próximos dos cores que os utilizam na arquitetura NUMA.
 
 \bibliographystyle{plain}
 \bibliography{refs}
